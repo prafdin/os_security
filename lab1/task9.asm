@@ -1,6 +1,7 @@
 section .data
                 
                 print_format: db '%d ',0
+                print_newline: db 10,0
                 arr_ptr: dq 0
                 arr_size: dd 3
 
@@ -85,6 +86,24 @@ print_array:
                 add rsp, 8
                 ret
                 
+reverse_print_array:
+                ; input params:
+                ; r14 - pointer to arr with integers (4 byte)
+                ; r15 - array size
+                mov rbx, r15
+                dec rbx
+                sub rsp, 8       
+    reverse_print_loop:
+                mov rsi, [r14+rbx*4]
+                mov rdi, print_format    
+                xor rax, rax 
+                call printf 
+                dec rbx
+                cmp rbx, 0
+                jnl reverse_print_loop
+                add rsp, 8
+                ret
+                
 insert_sort:   
                 ; input params:
                 ; rdi - ptr to arr
@@ -138,16 +157,31 @@ main:
                 mov rbp, rdi
                 mov r10, rsi
                 call parse_args ; ret rbx - ptr to arr
-                push rbx 
+                push rbx                            ; save ptr in stack
                 
                 mov rdi, rbx
                 mov rsi, [arr_size]
                 call insert_sort
                 
-                pop rbx
+                pop rbx                         ; pop ptr from stack
                 mov r14, rbx
+                push rbx                        ;save ptr in stack
                 mov r15, [arr_size]
                 call print_array
+                
+                mov rdi, print_newline
+                
+                call printf
+                
+                pop rbx                         ; pop ptr from stack
+                mov r14, rbx
+                mov r15, [arr_size]
+                call reverse_print_array
+                
+                sub rsp, 8 
+                mov rdi, print_newline
+                call printf
+                add rsp, 8
                 
                 
                 call exit
