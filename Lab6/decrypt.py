@@ -1,12 +1,23 @@
 from utils import *
 import sys
 
+# Получаем L массив ,состоящий из 'c' слов. с = b/u , где кол-во байт в слове вычисляется: u = w / 8 = 4 в случае w = 32.
+def blockConverterIMPROVED(sentence: bytearray):
+    encoded = []
+    ll = len(sentence)
+    encoded.append( int.from_bytes(sentence[:4], "big"))
+    encoded.append(int.from_bytes(sentence[4:8], "big"))
+    encoded.append(int.from_bytes(sentence[8:12], "big"))
+    encoded.append(int.from_bytes(sentence[12:16], "big"))
+    return encoded
+
+
 def decrypt(esentence,s):
-    encoded = blockConverter(esentence)
-    A = int(encoded[0],2)
-    B = int(encoded[1],2)
-    C = int(encoded[2],2)
-    D = int(encoded[3],2)
+    encoded = blockConverterIMPROVED(esentence)
+    A = encoded[0]
+    B = encoded[1]
+    C = encoded[2]
+    D = encoded[3]
     r=12
     w=32
     modulo = 2**32
@@ -34,23 +45,38 @@ def decrypt(esentence,s):
     return decodedByteText
 
 
+def decrypt_16bytes(sentence, s):
+    decrypted = decrypt(sentence, s)
+    tmp = bytearray()
+    for i in range(len(decrypted)):
+        b: bytes = decrypted[i].to_bytes(4, "big")
+        c = bin(decrypted[i])
+        a = len(b)
+        for j in b:
+            if j:
+                tmp += j.to_bytes(1, "big")
+
+    return tmp
+
 def main():
     with open("key.txt") as f:
         key = f.read()
     if len(key) <16:
         key = key + " "*(16-len(key))
     key = key[:16]
-                         
-    print ("Key: "+key )
     s = generateKeyForW32(key)
-    with open("encrypted.txt","r", encoding="UTF-8") as f:
-        esentence = f.readline()
-    decrypted = decrypt(esentence,s)
-    sentence = deBlocker(decrypted)
-    print ("Encrypted String: " + esentence)
-    print ("Decrypted String: " + sentence )
-    with open("decrypted.txt", "w") as f:
-        f.write(sentence)
+    with open("encrypted.txt","rb") as f:
+        esentence = f.read()
+
+    result = bytearray()
+
+    while(len(esentence)):
+        next_16bytes = esentence[:16]
+        result += decrypt_16bytes(next_16bytes, s)
+        esentence = esentence[16:]
+
+    with open("decrypted.txt", "wb") as f:
+        f.write(result)
 
 if __name__ == "__main__":
     main()
